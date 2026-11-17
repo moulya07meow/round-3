@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TriageVision CDS™ — Clinical Decision Support & Prioritization</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-clinical">
+  <!-- Top Navigation & Clinical Alert Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-logo">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14"/>
+        </svg>
+        <div class="brand-text">
+          <span class="brand-name">TriageVision <span class="badge-cds">CDS 2.4</span></span>
+          <span class="brand-sub">Clinical Decision Support & Case Prioritization Platform</span>
+        </div>
+      </div>
+      <div class="regulatory-pill">
+        <span class="dot-indicator pulse-green"></span>
+        <span>SaMD Class IIa • CE/FDA Investigational Aid</span>
+      </div>
+    </div>
+
+    <!-- Triage Status Counter Bar -->
+    <div class="triage-counter-bar">
+      <div class="counter-item stat-item" id="counter-stat">
+        <span class="count-val">2</span>
+        <span class="count-lbl">STAT (<15m)</span>
+      </div>
+      <div class="counter-item urgent-item" id="counter-urgent">
+        <span class="count-val">2</span>
+        <span class="count-lbl">URGENT (<60m)</span>
+      </div>
+      <div class="counter-item expedited-item" id="counter-expedited">
+        <span class="count-val">2</span>
+        <span class="count-lbl">EXPEDITED</span>
+      </div>
+      <div class="counter-item routine-item" id="counter-routine">
+        <span class="count-val">2</span>
+        <span class="count-lbl">ROUTINE</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button class="btn btn-secondary btn-sm" id="btn-batch-modal">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Cohort Batch Triage
+      </button>
+      <button class="btn btn-secondary btn-sm" id="btn-upload-modal">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Intake New Study
+      </button>
+      <button class="btn btn-ghost btn-sm" id="btn-audit-drawer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Audit Log (<span id="audit-count">0</span>)
+      </button>
+      <div class="physician-avatar" title="Active Radiologist: Dr. Alex Vance, MD">
+        <span class="avatar-initials">AV</span>
+        <span class="avatar-role">Dr. A. Vance (Rad)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Clinical Warning Disclaimer -->
+  <div class="clinical-disclaimer-banner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span><strong>CLINICAL DECISION SUPPORT NOTICE:</strong> This tool assists in triage prioritization and abnormal finding localization. It does NOT replace independent diagnostic review by a licensed healthcare professional. Human verification required before clinical action.</span>
+  </div>
+
+  <!-- Main Workstation Layout: 3 Columns -->
+  <main class="workstation-container">
+
+    <!-- Column 1: Live Prioritization Worklist -->
+    <section class="worklist-panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h3>Triage Reading Queue</h3>
+          <span class="badge-count" id="total-cases-badge">8 cases</span>
+        </div>
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="worklist-search" placeholder="Search MRN, finding, encounter...">
+        </div>
+      </div>
+
+      <!-- Quick Triage Filters -->
+      <div class="worklist-filters">
+        <button class="filter-tab active" data-filter="ALL">All (<span id="f-all">8</span>)</button>
+        <button class="filter-tab" data-filter="STAT">STAT (<span id="f-stat">2</span>)</button>
+        <button class="filter-tab" data-filter="URGENT">Urgent (<span id="f-urg">2</span>)</button>
+        <button class="filter-tab" data-filter="PENDING">Pending (<span id="f-pend">8</span>)</button>
+        <button class="filter-tab" data-filter="SIGNED">Signed (<span id="f-sign">0</span>)</button>
+      </div>
+
+      <!-- Dynamic Queue List -->
+      <div class="worklist-items" id="worklist-container">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- Column 2: Multimodal Radiology & Clinical EHR Workspace -->
+    <section class="viewer-panel">
+      <div class="viewer-top-bar">
+        <div class="patient-banner" id="active-patient-banner">
+          <div class="banner-main">
+            <span class="patient-id" id="banner-mrn">MRN: ANON-88219</span>
+            <span class="patient-name" id="banner-name">De-identified Patient A</span>
+            <span class="patient-demog" id="banner-demog">64yo M • Emergency Department (Resus)</span>
+          </div>
+          <div class="banner-urgency" id="banner-urgency-badge">
+            <span class="badge-priority badge-stat">STAT PRIORITY</span>
+            <span class="urgency-score-pill">Urgency: 98/100</span>
+          </div>
+        </div>
+
+        <!-- Modality View Tabs -->
+        <div class="view-mode-tabs">
+          <button class="mode-tab active" id="tab-imaging" data-mode="imaging">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Radiology & Grad-CAM
+          </button>
+          <button class="mode-tab" id="tab-clinical" data-mode="clinical">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Physiological NEWS2 & Labs
+          </button>
+          <button class="mode-tab" id="tab-split" data-mode="split">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+            Split Multimodal View
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Viewer Area -->
+      <div class="viewer-body-container">
+        
+        <!-- Radiology Canvas Box -->
+        <div class="imaging-view-box" id="imaging-box">
+          <!-- Canvas Toolbar Controls -->
+          <div class="canvas-controls-toolbar">
+            <div class="tool-group">
+              <label>Window/Level:</label>
+              <select id="wl-preset">
+                <option value="standard">Standard Chest</option>
+                <option value="lung">Lung Window (Pneumothorax/Infiltrate)</option>
+                <option value="mediastinum">Mediastinum / Soft Tissue</option>
+                <option value="bone">Bone Contrast</option>
+              </select>
+            </div>
+
+            <div class="tool-group slider-group">
+              <label for="heatmap-slider">Grad-CAM Overlay:</label>
+              <input type="range" id="heatmap-slider" min="0" max="100" value="65">
+              <span id="heatmap-val">65%</span>
+            </div>
+
+            <div class="tool-group">
+              <button class="btn-tool active" id="btn-toggle-roi" title="Toggle Region of Interest Box">ROI Box</button>
+              <button class="btn-tool" id="btn-toggle-ctr" title="Toggle Cardiothoracic Ratio Overlay">CTR Caliper</button>
+              <button class="btn-tool" id="btn-toggle-invert" title="Invert Grayscale">Invert</button>
+              <button class="btn-tool" id="btn-reset-view" title="Reset Zoom/Pan">Reset</button>
+            </div>
+          </div>
+
+          <!-- Canvas Drawing Surface -->
+          <div class="canvas-viewport">
+            <canvas id="dicomCanvas" width="560" height="560"></canvas>
+            <div class="canvas-overlay-labels">
+              <span class="overlay-tag top-left">AP PORTABLE CHEST</span>
+              <span class="overlay-tag top-right" id="overlay-finding-tag">TENSION PNEUMOTHORAX (96%)</span>
+              <span class="overlay-tag bottom-left" id="overlay-ctr-tag">CTR: 0.46 (Normal)</span>
+              <span class="overlay-tag bottom-right">W/L: STANDARD</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clinical & EHR Physiological Box -->
+        <div class="clinical-ehr-box" id="clinical-box">
+          <div class="clinical-box-header">
+            <h4>Physiological Deterioration & Vitals Profile</h4>
+            <span class="news2-badge-large" id="news2-large-badge">NEWS2 Score: 9 (High Risk)</span>
+          </div>
+
+          <!-- Vitals Grid -->
+          <div class="vitals-grid">
+            <div class="vital-card" id="vital-hr">
+              <span class="vital-label">Heart Rate</span>
+              <span class="vital-value" id="val-hr">128</span>
+              <span class="vital-unit">bpm</span>
+              <span class="vital-status status-alert" id="status-hr">Tachycardia (+2)</span>
+            </div>
+            <div class="vital-card" id="vital-bp">
+              <span class="vital-label">Blood Pressure</span>
+              <span class="vital-value" id="val-bp">86/54</span>
+              <span class="vital-unit">mmHg</span>
+              <span class="vital-status status-crit" id="status-bp">Hypotension (+3)</span>
+            </div>
+            <div class="vital-card" id="vital-rr">
+              <span class="vital-label">Respiration</span>
+              <span class="vital-value" id="val-rr">28</span>
+              <span class="vital-unit">br/min</span>
+              <span class="vital-status status-crit" id="status-rr">Tachypnea (+3)</span>
+            </div>
+            <div class="vital-card" id="vital-spo2">
+              <span class="vital-label">SpO2 / O2</span>
+              <span class="vital-value" id="val-spo2">88%</span>
+              <span class="vital-unit">on O2 (+2)</span>
+              <span class="vital-status status-crit" id="status-spo2">Hypoxemic (+3)</span>
+            </div>
+            <div class="vital-card" id="vital-temp">
+              <span class="vital-label">Temperature</span>
+              <span class="vital-value" id="val-temp">37.1</span>
+              <span class="vital-unit">°C</span>
+              <span class="vital-status status-ok" id="status-temp">Normal (+0)</span>
+            </div>
+            <div class="vital-card" id="vital-acvpu">
+              <span class="vital-label">Consciousness</span>
+              <span class="vital-value" id="val-acvpu">Confused (C)</span>
+              <span class="vital-unit">ACVPU</span>
+              <span class="vital-status status-crit" id="status-acvpu">Altered (+3)</span>
+            </div>
+          </div>
+
+          <!-- Indices Breakdown -->
+          <div class="indices-summary-row">
+            <div class="index-pill">
+              <span class="lbl">qSOFA Sepsis Risk:</span>
+              <span class="val" id="val-qsofa">Score 2/3 (Positive)</span>
+            </div>
+            <div class="index-pill">
+              <span class="lbl">Shock Index (HR/SBP):</span>
+              <span class="val" id="val-shock">1.49 (Critical)</span>
+            </div>
+          </div>
+
+          <!-- Feature Attributions (Explainable AI Waterfall) -->
+          <div class="explainability-section">
+            <h5>Explainable AI: Key Clinical Acuity Drivers</h5>
+            <div class="xai-bars" id="xai-drivers-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Labs Panel -->
+          <div class="labs-section">
+            <h5>Key Biomarkers & Chemistry</h5>
+            <div class="labs-chips" id="labs-chips-container">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Column 3: Decision Support, Guidelines & Clinician Sign-off -->
+    <section class="decision-panel">
+      <div class="panel-header">
+        <h3>Decision Support & Verification</h3>
+        <span class="sign-status-pill pending" id="active-sign-pill">Pending Sign-off</span>
+      </div>
+
+      <div class="decision-content">
+
+        <!-- AI Findings Summary Card -->
+        <div class="ai-findings-card">
+          <div class="card-head">
+            <span class="tag-ai">AI Primary Finding</span>
+            <span class="confidence-badge" id="ai-conf-badge">96% Conf (95% CI: 94-98%)</span>
+          </div>
+          <h4 class="primary-finding-text" id="ai-finding-title">Tension Pneumothorax</h4>
+          <p class="finding-desc" id="ai-finding-desc">
+            Right-sided tension pneumothorax with complete right lung collapse, flattening of right hemidiaphragm, and contralateral leftward mediastinal shift.
+          </p>
+          
+          <!-- Differential Findings List -->
+          <div class="differential-box">
+            <span class="diff-title">Differential Probabilities:</span>
+            <div class="diff-bars" id="diff-bars-container">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Clinical Guidelines & Best Practices Card -->
+        <div class="guidelines-card">
+          <div class="card-head">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <span class="guideline-src">Clinical Practice Guideline Citation</span>
+          </div>
+          <p class="guideline-text" id="guideline-text">
+            ACR Appropriateness: Immediate needle thoracostomy / tube thoracostomy indicated; do not delay for repeat imaging.
+          </p>
+        </div>
+
+        <!-- Clinician Review & Human-in-the-Loop Action Panel -->
+        <div class="verification-card">
+          <div class="card-head">
+            <span class="tag-human">Human-in-the-Loop Verification</span>
+            <span class="required-star">*Mandatory</span>
+          </div>
+
+          <div class="form-group">
+            <label for="review-decision">Verification Action:</label>
+            <select id="review-decision">
+              <option value="APPROVED">Accept & Concord with AI Finding</option>
+              <option value="MODIFIED">Modify AI Finding (Minor Adjustment)</option>
+              <option value="OVERRIDDEN">Override / Reject AI Finding (False Positive)</option>
+              <option value="ESCALATED">Flag for Immediate Specialist / Trauma Consult</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="override-finding-group" style="display: none;">
+            <label for="override-finding-input">Clinician Corrected Finding:</label>
+            <input type="text" id="override-finding-input" placeholder="Enter true radiological diagnosis...">
+          </div>
+
+          <div class="form-group">
+            <label for="clinician-notes">Physician Clinical Impression & Addendum:</label>
+            <textarea id="clinician-notes" rows="3" placeholder="Enter clinical assessment notes, confirmed anatomical landmarks, and treatment orders..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="clinician-sig">Attending Credential / Signature:</label>
+            <input type="text" id="clinician-sig" value="Dr. Alex Vance, MD — Board Certified Radiologist (NPI #1982736450)">
+          </div>
+
+          <div class="action-buttons-row">
+            <button class="btn btn-primary" id="btn-sign-case">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Sign & Commit Case
+            </button>
+            <button class="btn btn-danger-ghost" id="btn-escalate-stat">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              STAT Code Alert
+            </button>
+          </div>
+        </div>
+
+        <!-- Interoperability & Export Actions -->
+        <div class="export-card">
+          <div class="card-head">
+            <span class="tag-fhir">FHIR R4 / HL7 EHR Integration</span>
+          </div>
+          <div class="export-btns">
+            <button class="btn btn-secondary btn-sm" id="btn-view-fhir">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              View FHIR R4 JSON
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-view-hl7">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              View HL7 ORU
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-download-pdf">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export Report
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal 1: Batch Clinical Cohort Triage (EHR Deterioration Risk) -->
+  <div class="modal-backdrop" id="modal-batch">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div class="title-with-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          <h3>Automated Clinical Cohort Prioritization (20 Inpatient Records)</h3>
+        </div>
+        <button class="btn-close" id="btn-close-batch">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">
+          This module processes high-volume tabular electronic health records (EHR) using the verified <strong>NEWS2 + qSOFA + Shock Index</strong> clinical deterioration engine to identify undiagnosed deteriorating inpatients and prioritize them for rapid medical assessment.
+        </p>
+
+        <!-- Cohort Statistics Summary Cards -->
+        <div class="cohort-stats-row">
+          <div class="stat-box stat-red">
+            <span class="stat-number" id="cohort-stat-count">6</span>
+            <span class="stat-label">STAT Emergency</span>
+          </div>
+          <div class="stat-box stat-amber">
+            <span class="stat-number" id="cohort-urgent-count">5</span>
+            <span class="stat-label">Urgent Response</span>
+          </div>
+          <div class="stat-box stat-blue">
+            <span class="stat-number" id="cohort-exp-count">3</span>
+            <span class="stat-label">Expedited</span>
+          </div>
+          <div class="stat-box stat-green">
+            <span class="stat-number" id="cohort-rout-count">6</span>
+            <span class="stat-label">Routine</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-number">98.4%</span>
+            <span class="stat-label">Sepsis-3 Sensitivity</span>
+          </div>
+        </div>
+
+        <!-- Table of Cohort -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Patient ID</th>
+                <th>Age/Sex</th>
+                <th>Vitals (HR/BP/RR/SpO2)</th>
+                <th>NEWS2 Score</th>
+                <th>qSOFA</th>
+                <th>Shock Index</th>
+                <th>Triage Rec</th>
+                <th>Key Physiological Risk Drivers</th>
+              </tr>
+            </thead>
+            <tbody id="cohort-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-export-cohort-csv">Export Stratified CSV</button>
+        <button class="btn btn-primary" id="btn-close-batch-2">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Ad-Hoc Medical Image Intake -->
+  <div class="modal-backdrop" id="modal-upload">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="title-with-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <h3>Intake New Medical Image for AI Triage Analysis</h3>
+        </div>
+        <button class="btn-close" id="btn-close-upload">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Upload a DICOM or standard chest X-ray image to run real-time automated finding extraction, Grad-CAM saliency localization, and priority queue insertion.</p>
+        
+        <div class="form-group">
+          <label>Select Simulated Pathology / Clinical Preset:</label>
+          <select id="upload-preset-select">
+            <option value="pneumothorax">Pneumothorax (Right Apical Rim)</option>
+            <option value="tension_pneumothorax">Tension Pneumothorax (Mediastinal Shift)</option>
+            <option value="massive_pleural_effusion">Massive Pleural Effusion (Left Hemithorax Meniscus)</option>
+            <option value="cardiomegaly_pulmonary_edema">Cardiomegaly with Pulmonary Edema (CTR 0.63)</option>
+            <option value="lobar_consolidation_pneumonia">Lobar Pneumonia (Right Middle/Lower Lobe)</option>
+            <option value="solitary_pulmonary_nodule">Solitary Pulmonary Nodule (12mm Left Upper Lobe)</option>
+            <option value="atelectasis">Bibasilar Atelectasis</option>
+            <option value="normal_chest">Normal Chest Radiograph</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Patient Demographics / Medical Record Number:</label>
+          <div class="input-row">
+            <input type="text" id="upload-mrn" placeholder="MRN (e.g. ANON-99412)" value="ANON-99412">
+            <input type="number" id="upload-age" placeholder="Age" value="61" style="width: 80px;">
+            <select id="upload-sex" style="width: 80px;">
+              <option value="M">M</option>
+              <option value="F">F</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Clinical History & Chief Complaint:</label>
+          <input type="text" id="upload-history" placeholder="e.g. Acute dyspnea, pleuritic chest pain" value="Sudden onset breathlessness following trauma">
+        </div>
+
+        <div class="form-group">
+          <label>Model Operating Threshold / Sensitivity Mode:</label>
+          <select id="upload-sensitivity">
+            <option value="high_sens">High Sensitivity Triage Mode (Favors Zero False Negatives)</option>
+            <option value="balanced" selected>Balanced F1 Screening Mode (Calibrated)</option>
+            <option value="high_spec">High Specificity Confirmatory Mode</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancel-upload">Cancel</button>
+        <button class="btn btn-primary" id="btn-submit-upload">Run CDS Triage Analysis</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: FHIR R4 / HL7 Raw Viewer -->
+  <div class="modal-backdrop" id="modal-fhir">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3 id="modal-fhir-title">HL7 FHIR R4 DiagnosticReport Bundle</h3>
+        <button class="btn-close" id="btn-close-fhir">&times;</button>
+      </div>
+      <div class="modal-body">
+        <pre class="json-code-view" id="fhir-json-code"></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-copy-fhir">Copy to Clipboard</button>
+        <button class="btn btn-primary" id="btn-done-fhir">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer: Regulatory Audit Log -->
+  <div class="audit-drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="audit-drawer" id="audit-drawer">
+    <div class="drawer-header">
+      <div class="title-with-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <h3>Regulatory Audit Trail (SaMD / 21 CFR 820)</h3>
+      </div>
+      <button class="btn-close" id="btn-close-drawer">&times;</button>
+    </div>
+    <div class="drawer-body" id="audit-log-items">
+      <!-- Dynamically populated -->
+    </div>
+  </aside>
+
+  <!-- Notification Toast -->
+  <div class="toast-notification" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
