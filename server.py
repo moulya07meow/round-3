@@ -427,10 +427,10 @@ class CDSTriageHTTPHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Not Found")
 
 
-def run(port=8080):
-    server_address = ("127.0.0.1", port)
+def run(port=8080, host="0.0.0.0"):
+    server_address = (host, port)
     httpd = HTTPServer(server_address, CDSTriageHTTPHandler)
-    print(f"CDS Triage Decision Support Server listening at http://127.0.0.1:{port}")
+    print(f"CDS Triage Decision Support Server listening at http://{host}:{port}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -439,5 +439,6 @@ def run(port=8080):
 
 
 if __name__ == "__main__":
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
-    run(port)
+    port = int(os.environ.get("PORT", sys.argv[1] if len(sys.argv) > 1 else 8080))
+    host = os.environ.get("HOST", "0.0.0.0")
+    run(port, host)

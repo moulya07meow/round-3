@@ -1,0 +1,4 @@
+# TriageVision CDS runs purely on Python standard library (no external heavy dependencies required)
+# Add any optional scientific packages below if extending with PyTorch/TensorFlow:
+# torch>=2.0.0
+# pydicom>=2.4.0
